@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <cassert>
+#include <stdint.h>
 
 #include <endian.h>
 
@@ -13,8 +14,13 @@ const std::string lat_data_header = "#!/usr/bin/env lat-io-glimpse\n";
 struct LatDim
 {
   std::string name;
-  long size = 0;
+  long size;
   std::vector<std::string> indices;
+  //  
+  LatDim()
+  {
+     size = 0;
+  }
 };
 
 typedef std::vector<LatDim> LatInfo;
