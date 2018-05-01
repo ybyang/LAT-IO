@@ -13,9 +13,9 @@
 
 #define INF -65535
 
-inline char** xqcd_type_str()
+inline const char** xqcd_type_str()
 {
-   static char	*xqcd_type_dim_desc[N_MAX_DIMENSION_TYPES]={"other", "x", "y", "z", "t", "d", "c", "d2", "c2", "complex", "mass", "smear", "displacement", "s_01", "s_02", "s_03", "s_11", "s_12", "s_13", "d_01", "d_02", "d_03", "d_11", "d_12", "d_13", "conf", "operator", "momentum", "direction", "t2", "mass2", "column", "row", "temporary", "temporary2", "temporary3", "temporary4", "errorbar", "operator2", "param", "fit_left", "fit_right", "jackknife", "jackknife2", "jackknife3", "jackknife4", "summary", "channel", "channel2", "eigen", "d_row", "d_col", "c_row", "c_col", "parity", "noise", "evenodd", "disp_x", "disp_y", "disp_z", "disp_t", "t3", "t4", "t_source", "t_current", "t_sink","bootstrap", "nothing"};
+   static const char	*xqcd_type_dim_desc[N_MAX_DIMENSION_TYPES]={"other", "x", "y", "z", "t", "d", "c", "d2", "c2", "complex", "mass", "smear", "displacement", "s_01", "s_02", "s_03", "s_11", "s_12", "s_13", "d_01", "d_02", "d_03", "d_11", "d_12", "d_13", "conf", "operator", "momentum", "direction", "t2", "mass2", "column", "row", "temporary", "temporary2", "temporary3", "temporary4", "errorbar", "operator2", "param", "fit_left", "fit_right", "jackknife", "jackknife2", "jackknife3", "jackknife4", "summary", "channel", "channel2", "eigen", "d_row", "d_col", "c_row", "c_col", "parity", "noise", "evenodd", "disp_x", "disp_y", "disp_z", "disp_t", "t3", "t4", "t_source", "t_current", "t_sink","bootstrap", "nothing"};
    return xqcd_type_dim_desc;
 }
 
