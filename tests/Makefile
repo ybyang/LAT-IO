@@ -1,5 +1,5 @@
 all:
-	g++ -I.. main.C
+	g++ -fopenmp -I.. main.C -lz
 	./a.out
 #	diff test.lat*
 

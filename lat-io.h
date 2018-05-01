@@ -3,9 +3,12 @@
 #include <string>
 #include <vector>
 #include <cassert>
-#include <stdint.h>
 
+#include <stdint.h>
 #include <endian.h>
+#include <omp.h>
+
+#include <zlib.h>
 
 #include <show.h>
 
@@ -117,6 +120,61 @@ inline std::string qgetline(FILE* fp)
     std::free(lineptr);
     return std::string();
   }
+}
+
+typedef uint32_t crc32_t;
+
+inline crc32_t crc32(const crc32_t initial, const void* data, const long len)
+{
+  return crc32_z(initial, (const unsigned char*)data, len);
+}
+
+inline crc32_t crc32(const void* smessage, const long nBytes)
+{
+  return crc32(0, smessage, nBytes);
+}
+
+inline crc32_t crc32_shift(const crc32_t initial, const long offset)
+  // shift initial left by offset length
+  // if offset == 0 then return initial
+  // offset should be the length of the part after the initial part (which evaluate to crc initial)
+  // xor all the results gives the final crc32
+{
+  return crc32_combine(initial, 0, offset);
+}
+
+inline crc32_t crc32_par(const void* smessage, const long nBytes)
+{
+  const uint8_t* ptr = (const uint8_t*)smessage;
+  const long size = nBytes;
+  const int v_limit = omp_get_max_threads();
+  std::vector<crc32_t> crcs(v_limit, 0);
+  crc32_t ret = 0;
+#pragma omp parallel
+  {
+    const int nthreads = omp_get_num_threads();
+    const int id = omp_get_thread_num();
+    const long chunk_size = size / nthreads + 1;
+    const long start = std::min(id * chunk_size, size);
+    const long end = std::min(start + chunk_size, size);
+    const long len = end - start;
+    const crc32_t crc = crc32(ptr + start, len);
+    crcs[id] = crc32_shift(crc, size - end);
+#pragma omp barrier
+    if (0 == id) {
+      for (int i = 0 ; i < nthreads; ++i) {
+        ret ^= crcs[i];
+      }
+    }
+  }
+  return ret;
+}
+
+inline crc32_t read_crc32(const std::string& s)
+{
+  crc32_t crc32;
+  std::sscanf(s.c_str(), "%X", &crc32);
+  return crc32;
 }
 
 }
@@ -245,7 +303,8 @@ inline LatInfo read_lat_info(const std::string& str)
   assert(infos.size() >= 1);
   const std::string ndim_prop = "ndim: ";
   assert(infos[0].compare(0, ndim_prop.size(), ndim_prop) == 0);
-  assert(read_long(std::string(infos[0], ndim_prop.size())) == infos.size() - 1);
+  const long ndim = read_long(std::string(infos[0], ndim_prop.size()));
+  assert(ndim == infos.size() - 1);
   for (int i = 1; i < infos.size(); ++i) {
     info.push_back(read_lat_dim(infos[i]));
   }
@@ -268,15 +327,24 @@ inline void LatData::load(const std::string& fn)
     infos.push_back(qgetline(fp));
   }
   std::ostringstream out;
-  for (int i = 3; i < infos.size() - 1; ++i) {
+  for (int i = 3; i < infos.size() - 2; ++i) {
     out << infos[i];
   }
   const std::string info_str = out.str();
   info = read_lat_info(info_str);
+  const std::string& crc_str = infos[infos.size() - 2];
+  const std::string crc_prop = "crc32: ";
+  assert(crc_str.compare(0, crc_prop.size(), crc_prop) == 0);
+  const crc32_t crc = read_crc32(std::string(crc_str, crc_prop.size()));
   lat_data_alloc(*this);
   assert(res.size() == lat_data_size(info));
   assert(res.size() * sizeof(double) == read_long(infos[2]));
   fread(res.data(), sizeof(double), res.size(), fp);
+  const crc32_t crc_computed = crc32_par(res.data(), res.size() * sizeof(double));
+  if (crc != crc_computed) {
+    displayln(ssprintf("ERROR: crc do not match: file=%08X computed=%08X", crc, crc_computed));
+    assert(false);
+  }
   to_from_little_endian_64(res.data(), res.size() * sizeof(double));
   fclose(fp);
 }
@@ -287,21 +355,24 @@ inline void LatData::save(const std::string& fn) const
   using namespace qutils;
   FILE* fp = fopen(fn.c_str(), "w");
   assert(fp != NULL);
+  std::vector<double> res_copy;
+  if (!is_little_endian()) {
+    res_copy = res;
+    assert(res_copy.size() == res.size());
+    to_from_little_endian_64(res_copy.data(), res_copy.size() * sizeof(double));
+  }
   const std::string data_size = ssprintf("data_size\n%ld\n", res.size() * sizeof(double));
   const std::string info_str = show(info);
+  const std::string checksum_str = ssprintf("crc32: %08X\n",
+      crc32_par(is_little_endian() ? res.data() : res_copy.data(),
+        res.size() * sizeof(double)));
   const std::string end_header = "END_HEADER\n";
   fwrite(lat_data_header.data(), lat_data_header.size(), 1, fp);
   fwrite(data_size.data(), data_size.size(), 1, fp);
   fwrite(info_str.data(), info_str.size(), 1, fp);
+  fwrite(checksum_str.data(), checksum_str.size(), 1, fp);
   fwrite(end_header.data(), end_header.size(), 1, fp);
-  if (is_little_endian()) {
-    fwrite(res.data(), sizeof(double), res.size(), fp);
-  } else {
-    std::vector<double> res_copy(res);
-    assert(res_copy.size() == res.size());
-    to_from_little_endian_64(res_copy.data(), res_copy.size() * sizeof(double));
-    fwrite(res_copy.data(), sizeof(double), res_copy.size(), fp);
-  }
+  fwrite(is_little_endian() ? res.data() : res_copy.data(), sizeof(double), res.size(), fp);
   fclose(fp);
 }
 
