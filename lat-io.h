@@ -342,7 +342,7 @@ inline void LatData::load(const std::string& fn)
   fread(res.data(), sizeof(double), res.size(), fp);
   const crc32_t crc_computed = crc32_par(res.data(), res.size() * sizeof(double));
   if (crc != crc_computed) {
-    displayln(ssprintf("ERROR: crc do not match: file=%08X computed=%08X", crc, crc_computed));
+    displayln(ssprintf("ERROR: crc do not match: file=%08X computed=%08X fn='%s'.", crc, crc_computed, fn.c_str()));
     assert(false);
   }
   to_from_little_endian_64(res.data(), res.size() * sizeof(double));
