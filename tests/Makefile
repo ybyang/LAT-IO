@@ -6,3 +6,4 @@ all:
 clean:
 	-rm a.out
 	-rm test.lat*
+	-rm test.iog*
