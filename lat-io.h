@@ -10,14 +10,14 @@
 
 #include <zlib.h>
 
-#include <show.h>
+#include "show.h"
 
 const std::string lat_data_header = "#!/usr/bin/env lat-io-glimpse\n";
 
 struct LatDim
 {
   std::string name;
-  long size;
+  long size; // size of this dimension
   std::vector<std::string> indices;
   //  
   LatDim()
