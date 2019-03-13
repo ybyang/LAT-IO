@@ -11,12 +11,7 @@ inline LatData mk_lat_data()
   d1.indices.push_back("3");
   d1.indices.push_back("7");
   d1.indices.push_back("2");
-  LatDim d2;
-  d2.name = "conf";
-  d2.size = 3;
-  d2.indices.push_back("a");
-  d2.indices.push_back("123");
-  d2.indices.push_back("c");
+  const LatDim d2 = lat_dim_string("conf", qutils::make_array<std::string>("a", "123", "c"));
   LatDim d3;
   d3.name = "d3";
   d3.size = 123;

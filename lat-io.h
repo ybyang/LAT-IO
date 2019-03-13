@@ -430,7 +430,7 @@ inline LatDim lat_dim_number(const std::string& name, const long start,
   return dim;
 }
 
-template <int N>
+template <unsigned long N>
 inline LatDim lat_dim_string(const std::string& name,
                              const std::array<std::string, N>& is)
 {
