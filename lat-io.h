@@ -406,17 +406,6 @@ inline void clear(latio::LatData& ld)
 namespace latio
 {  //
 
-inline LatDim lat_dim_re_im()
-{
-  LatDim dim;
-  dim.name = "re-im";
-  dim.size = 2;
-  dim.indices.resize(2);
-  dim.indices[0] = "re";
-  dim.indices[1] = "im";
-  return dim;
-}
-
 inline LatDim lat_dim_number(const std::string& name, const long start,
                              const long end, const long inc = 1)
 {
@@ -437,10 +426,16 @@ inline LatDim lat_dim_string(const std::string& name,
   LatDim dim;
   dim.name = name;
   dim.size = N;
-  for (int i = 0; i < N; ++i) {
+  for (int i = 0; i < (int)N; ++i) {
     dim.indices.push_back(is[i]);
   }
   return dim;
+}
+
+inline LatDim lat_dim_re_im()
+{
+  using namespace qutils;
+  return lat_dim_string("re-im", make_array<std::string>("re", "im"));
 }
 
 inline long lat_dim_idx(const LatDim& dim, const std::string& idx)
